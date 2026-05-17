@@ -1,0 +1,358 @@
+<div class="fixed inset-0 bg-white dark:bg-neutral-900 z-50 flex flex-col md:flex-row overflow-hidden">
+  
+  <!-- Left Nav (Matches Sidebar Width) -->
+  <aside class="w-full md:w-64 flex-shrink-0 flex flex-col border-b md:border-b-0 md:border-r border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
+    <div class="p-4 flex items-center justify-between border-b border-transparent">
+      <h2 class="text-lg font-medium text-neutral-900 dark:text-white">Settings</h2>
+      <button (click)="handleCloseSettings()" class="md:hidden p-1.5 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+      </button>
+    </div>
+    
+    <nav class="flex-1 overflow-y-auto p-3 space-y-1">
+      <button class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-white">
+        Inference & Model
+      </button>
+    </nav>
+  </aside>
+
+  <!-- Main Settings Content -->
+  <main class="flex-1 overflow-y-auto p-6 md:p-10 relative">
+    
+    <!-- Close Button (Desktop) -->
+    <button (click)="handleCloseSettings()" class="hidden md:flex absolute top-6 right-6 p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+    </button>
+
+    <div class="max-w-2xl mx-auto space-y-10">
+      
+      <!-- General Section -->
+      <section>
+        <h3 class="text-xl font-medium text-neutral-900 dark:text-white mb-6">Inference Settings</h3>
+        
+        <div class="space-y-6 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6">
+          
+          <!-- Ollama API Target URL -->
+          <div>
+            <label class="block text-sm font-medium text-neutral-900 dark:text-neutral-200 mb-2">Ollama API Target Host</label>
+            <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-3">Direct connection URL to your local or remote Ollama daemon.</p>
+            <input 
+              type="text" 
+              [ngModel]="settings().apiUrl" 
+              (ngModelChange)="updateSetting('apiUrl', $event)"
+              placeholder="http://localhost:11434"
+              class="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-2.5 text-sm text-neutral-900 dark:text-white focus:ring-1 focus:ring-neutral-300 dark:focus:ring-neutral-600 outline-none font-mono" />
+          </div>
+
+          <div class="w-full h-px bg-neutral-200 dark:bg-neutral-800"></div>
+
+          <!-- System Prompt -->
+          <div>
+            <label class="block text-sm font-medium text-neutral-900 dark:text-neutral-200 mb-2">System Prompt</label>
+            <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-3">Define how the model behaves or responds across all chats.</p>
+            <textarea 
+              [ngModel]="settings().systemPrompt" 
+              (ngModelChange)="updateSetting('systemPrompt', $event)"
+              placeholder="e.g. You are a helpful AI assistant..."
+              class="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-3 text-sm text-neutral-900 dark:text-white focus:ring-1 focus:ring-neutral-300 dark:focus:ring-neutral-600 outline-none min-h-[100px]">
+            </textarea>
+          </div>
+
+          <div class="w-full h-px bg-neutral-200 dark:bg-neutral-800"></div>
+
+          <!-- Context Length -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-sm font-medium text-neutral-900 dark:text-neutral-200">Context Length</label>
+              <div class="flex items-center gap-2">
+                <input 
+                  type="number" 
+                  [ngModel]="settings().contextLength"
+                  (ngModelChange)="updateSetting('contextLength', $event)"
+                  class="w-24 text-right bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded px-2 py-0.5 text-xs font-mono text-neutral-900 dark:text-white focus:ring-1 focus:ring-neutral-300 outline-none" />
+                <span class="text-xs text-neutral-500 dark:text-neutral-400">tokens</span>
+              </div>
+            </div>
+            <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-3">Higher values use more RAM but allow longer conversations before forgetting past messages.</p>
+            
+            <input 
+              type="range" 
+              [ngModel]="settings().contextLength"
+              (ngModelChange)="updateSetting('contextLength', $event)"
+              min="4096" [max]="modelMaxContext()" step="4096" 
+              class="w-full accent-neutral-900 dark:accent-white" />
+            
+            <div class="flex justify-between text-[10px] text-neutral-400 mt-1">
+              <span>Min: 4k (4,096)</span>
+              <span>Max: {{ modelMaxContext() >= 1048576 ? (modelMaxContext() / 1048576).toFixed(0) + 'M' : (modelMaxContext() / 1024).toFixed(0) + 'k' }} ({{ modelMaxContext().toLocaleString() }}) [Active: {{ modelName() }}]</span>
+            </div>
+
+            <!-- VRAM warning if > 32k -->
+            <div *ngIf="settings().contextLength > 32768" class="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2 animate-fade-in-up">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              <span><strong>Warning:</strong> Context sizes above 32k tokens require substantial VRAM/RAM. Exceeding your graphics memory limits will cause Ollama to offload computation to CPU, slowing generation speeds significantly.</span>
+            </div>
+          </div>
+
+          <div class="w-full h-px bg-neutral-200 dark:bg-neutral-800"></div>
+
+          <!-- Temperature -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-sm font-medium text-neutral-900 dark:text-neutral-200">Temperature</label>
+              <span class="text-xs font-mono bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded text-neutral-600 dark:text-neutral-300">{{ settings().temperature }}</span>
+            </div>
+            <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-3">Controls randomness. Lower values make the model more deterministic, higher makes it more creative.</p>
+            <input 
+              type="range" 
+              [ngModel]="settings().temperature"
+              (ngModelChange)="updateSetting('temperature', $event)"
+              min="0.0" max="2.0" step="0.1" 
+              class="w-full accent-neutral-900 dark:accent-white" />
+            <div class="flex justify-between text-[10px] text-neutral-400 mt-1">
+              <span>0.0 (Precise)</span>
+              <span>2.0 (Random)</span>
+            </div>
+          </div>
+
+          <div class="w-full h-px bg-neutral-200 dark:bg-neutral-800"></div>
+
+          <!-- Max Tokens -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-sm font-medium text-neutral-900 dark:text-neutral-200">Max Tokens (num_predict)</label>
+              <span class="text-xs font-mono bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded text-neutral-600 dark:text-neutral-300">{{ settings().maxTokens === -1 ? 'Infinite' : settings().maxTokens }}</span>
+            </div>
+            <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-3">Maximum number of tokens to predict. Use -1 for infinite.</p>
+            <input 
+              type="range" 
+              [ngModel]="settings().maxTokens"
+              (ngModelChange)="updateSetting('maxTokens', $event)"
+              min="-1" max="8192" step="128" 
+              class="w-full accent-neutral-900 dark:accent-white" />
+            <div class="flex justify-between text-[10px] text-neutral-400 mt-1">
+              <span>Infinite (-1)</span>
+              <span>8192</span>
+            </div>
+          </div>
+
+          <div class="w-full h-px bg-neutral-200 dark:bg-neutral-800"></div>
+
+          <!-- Top P -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-sm font-medium text-neutral-900 dark:text-neutral-200">Top-P</label>
+              <span class="text-xs font-mono bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded text-neutral-600 dark:text-neutral-300">{{ settings().topP }}</span>
+            </div>
+            <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-3">Alternative to temperature. Lower values reduce probability of random tokens.</p>
+            <input 
+              type="range" 
+              [ngModel]="settings().topP"
+              (ngModelChange)="updateSetting('topP', $event)"
+              min="0.0" max="1.0" step="0.05" 
+              class="w-full accent-neutral-900 dark:accent-white" />
+            <div class="flex justify-between text-[10px] text-neutral-400 mt-1">
+              <span>0.0</span>
+              <span>1.0</span>
+            </div>
+          </div>
+
+          <div class="w-full h-px bg-neutral-200 dark:bg-neutral-800"></div>
+
+          <!-- Repeat Penalty -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-sm font-medium text-neutral-900 dark:text-neutral-200">Repeat Penalty</label>
+              <span class="text-xs font-mono bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded text-neutral-600 dark:text-neutral-300">{{ settings().repeatPenalty }}</span>
+            </div>
+            <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-3">Prevents the model from repeating itself. 1.0 is no penalty.</p>
+            <input 
+              type="range" 
+              [ngModel]="settings().repeatPenalty"
+              (ngModelChange)="updateSetting('repeatPenalty', $event)"
+              min="0.0" max="2.0" step="0.05" 
+              class="w-full accent-neutral-900 dark:accent-white" />
+            <div class="flex justify-between text-[10px] text-neutral-400 mt-1">
+              <span>0.0</span>
+              <span>2.0</span>
+            </div>
+          </div>
+
+          <div class="w-full h-px bg-neutral-200 dark:bg-neutral-800"></div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Seed -->
+            <div>
+              <label class="block text-sm font-medium text-neutral-900 dark:text-neutral-200 mb-2">Seed</label>
+              <p class="text-[10px] text-neutral-500 dark:text-neutral-400 mb-2">Set to non-zero for deterministic output.</p>
+              <input 
+                type="number" 
+                [ngModel]="settings().seed" 
+                (ngModelChange)="updateSetting('seed', $event)"
+                class="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-2 text-sm text-neutral-900 dark:text-white outline-none focus:ring-1 focus:ring-neutral-300" />
+            </div>
+
+            <!-- Stop Sequences -->
+            <div>
+              <label class="block text-sm font-medium text-neutral-900 dark:text-neutral-200 mb-2">Stop Sequences</label>
+              <p class="text-[10px] text-neutral-500 dark:text-neutral-400 mb-2">Comma separated strings to stop generation.</p>
+              <input 
+                type="text" 
+                [ngModel]="settings().stopSequences" 
+                (ngModelChange)="updateSetting('stopSequences', $event)"
+                placeholder="e.g. \n, User:"
+                class="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-2 text-sm text-neutral-900 dark:text-white outline-none focus:ring-1 focus:ring-neutral-300" />
+            </div>
+          </div>
+
+          <div class="w-full h-px bg-neutral-200 dark:bg-neutral-800"></div>
+          <!-- Keep Alive -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-sm font-medium text-neutral-900 dark:text-neutral-200">Keep Alive</label>
+              <span class="text-xs font-mono bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded text-neutral-600 dark:text-neutral-300">{{ settings().keepAlive === -1 ? 'Infinite' : settings().keepAlive + ' min' }}</span>
+            </div>
+            <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-3">How long the model stays loaded in memory after a request. Use -1 to keep it loaded indefinitely.</p>
+            <input 
+              type="range" 
+              [ngModel]="settings().keepAlive"
+              (ngModelChange)="updateSetting('keepAlive', $event)"
+              min="-1" max="60" step="1" 
+              class="w-full accent-neutral-900 dark:accent-white" />
+            <div class="flex justify-between text-[10px] text-neutral-400 mt-1">
+              <span>Infinite (-1)</span>
+              <span>60 mins</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Reasoning / Thinking -->
+      <section>
+        <h3 class="text-xl font-medium text-neutral-900 dark:text-white mb-6">Advanced Options</h3>
+        <div class="space-y-6 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6">
+          
+          <div class="flex items-start justify-between">
+            <div>
+              <label class="text-sm font-medium text-neutral-900 dark:text-neutral-200 block mb-1">Enable Reasoning (Thinking)</label>
+              <p class="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm">Allow reasoning models (like DeepSeek-R1) to generate internal thoughts before answering. Disabling this asks the API to skip the reasoning phase.</p>
+            </div>
+            
+            <label class="relative inline-flex items-center cursor-pointer mt-1">
+              <input type="checkbox" [ngModel]="settings().thinking" (ngModelChange)="updateSetting('thinking', $event)" class="sr-only peer">
+              <div class="w-11 h-6 bg-neutral-200 peer-focus:outline-none rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-neutral-600 peer-checked:bg-neutral-900 dark:peer-checked:bg-white"></div>
+            </label>
+          </div>
+
+          <div class="w-full h-px bg-neutral-200 dark:bg-neutral-800"></div>
+
+          <div class="flex items-start justify-between">
+            <div>
+              <label class="text-sm font-medium text-neutral-900 dark:text-neutral-200 block mb-1">JSON Mode</label>
+              <p class="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm">Forces the model to output valid JSON instead of markdown. Useful for APIs.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer mt-1">
+              <input type="checkbox" [ngModel]="settings().jsonMode" (ngModelChange)="updateSetting('jsonMode', $event)" class="sr-only peer">
+              <div class="w-11 h-6 bg-neutral-200 peer-focus:outline-none rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-neutral-600 peer-checked:bg-neutral-900 dark:peer-checked:bg-white"></div>
+            </label>
+          </div>
+
+          <!-- JSON Schema Input (Only visible when JSON mode is on) -->
+          <div *ngIf="settings().jsonMode" class="mt-4 p-4 bg-neutral-50 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 animate-fade-in-up">
+            <label class="block text-sm font-medium text-neutral-900 dark:text-neutral-200 mb-2">JSON Schema (Structured Outputs)</label>
+            <p class="text-[10px] text-neutral-500 dark:text-neutral-400 mb-3">Optional. Force the model to output JSON that strictly matches this exact schema structure. Leave blank for free-form JSON.</p>
+            <textarea 
+              [ngModel]="settings().jsonSchema" 
+              (ngModelChange)="updateSetting('jsonSchema', $event)"
+              placeholder='{"type": "object", "properties": {"name": {"type": "string"}}}'
+              class="w-full bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded-lg p-3 text-xs font-mono text-neutral-900 dark:text-white focus:ring-1 focus:ring-neutral-400 outline-none min-h-[120px]">
+            </textarea>
+          </div>
+
+          <div class="w-full h-px bg-neutral-200 dark:bg-neutral-800"></div>
+
+          <div class="flex items-start justify-between">
+            <div>
+              <label class="text-sm font-medium text-neutral-900 dark:text-neutral-200 block mb-1">Truncate History</label>
+              <p class="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm">Automatically truncate older chat messages when exceeding Context Length, preventing server crash.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer mt-1">
+              <input type="checkbox" [ngModel]="settings().truncateHistory" (ngModelChange)="updateSetting('truncateHistory', $event)" class="sr-only peer">
+              <div class="w-11 h-6 bg-neutral-200 peer-focus:outline-none rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-neutral-600 peer-checked:bg-neutral-900 dark:peer-checked:bg-white"></div>
+            </label>
+          </div>
+
+          <div class="w-full h-px bg-neutral-200 dark:bg-neutral-800"></div>
+
+          <!-- Dev VRAM Telemetry Optional Control -->
+          <div class="flex items-start justify-between">
+            <div>
+              <label class="text-sm font-medium text-neutral-900 dark:text-neutral-200 block mb-1">Developer GPU Telemetry</label>
+              <p class="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm">Enables live host GPU memory queries targeting port 9090 while in local Angular developer mode (port 4200). Keep disabled to completely suppress connection errors in your browser dev-tools console.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer mt-1">
+              <input type="checkbox" [ngModel]="settings().enableGPUTelemetry" (ngModelChange)="updateSetting('enableGPUTelemetry', $event)" class="sr-only peer">
+              <div class="w-11 h-6 bg-neutral-200 peer-focus:outline-none rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-neutral-600 peer-checked:bg-neutral-900 dark:peer-checked:bg-white"></div>
+            </label>
+          </div>
+
+          <div class="w-full h-px bg-neutral-200 dark:bg-neutral-800"></div>
+
+          <!-- Advanced Context Scaling (RoPE) -->
+          <div>
+            <label class="text-sm font-medium text-neutral-900 dark:text-neutral-200 block mb-1">Advanced Context Scaling (RoPE)</label>
+            <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-4 max-w-xl">Dynamically stretch the context ceilings of older models by applying Rotary Position Embedding scaling. Leave at 0 to use model defaults.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">RoPE Frequency Base</label>
+                <input 
+                  type="number" 
+                  [ngModel]="settings().ropeFrequencyBase" 
+                  (ngModelChange)="updateSetting('ropeFrequencyBase', $event)"
+                  placeholder="e.g. 500000"
+                  class="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-2 text-sm text-neutral-900 dark:text-white outline-none focus:ring-1 focus:ring-neutral-300" />
+                <p class="text-[10px] text-neutral-400 mt-1">Stretches the relative positioning factor (e.g. 500000 to stretch 8k llama3 context).</p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">RoPE Scaling Factor</label>
+                <input 
+                  type="number" 
+                  [ngModel]="settings().ropeScale" 
+                  (ngModelChange)="updateSetting('ropeScale', $event)"
+                  placeholder="e.g. 1.0"
+                  step="0.1"
+                  class="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-2 text-sm text-neutral-900 dark:text-white outline-none focus:ring-1 focus:ring-neutral-300" />
+                <p class="text-[10px] text-neutral-400 mt-1">Direct multiplier scaling parameter for self-attention angles (e.g. 2.0 or 4.0).</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Danger Zone -->
+      <section>
+        <h3 class="text-xl font-medium text-red-500 mb-6">Danger Zone</h3>
+        <div class="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-2xl p-6 flex items-center justify-between">
+          <div>
+            <h4 class="text-sm font-medium text-red-700 dark:text-red-400">Reset Settings</h4>
+            <p class="text-xs text-red-600 dark:text-red-500/80 mt-1">Revert all local UI configurations to default values.</p>
+          </div>
+          <button (click)="handleResetToDefaults()" class="px-4 py-2 bg-red-100 dark:bg-red-900/50 hover:bg-red-200 dark:hover:bg-red-900 text-red-700 dark:text-red-400 text-sm font-medium rounded-lg transition-colors">
+            Reset
+          </button>
+        </div>
+      </section>
+      
+    </div>
+  </main>
+</div>
+
+<!-- Toast Notification -->
+<div *ngIf="showSaved()" class="fixed bottom-6 right-6 bg-neutral-900 dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 transform transition-all z-50 animate-fade-in-up">
+  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+  <span class="text-sm font-medium">Settings saved locally</span>
+</div>

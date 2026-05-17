@@ -324,61 +324,7 @@ function ollama {
     cp .\ollama.exe "${script:DIST_DIR}\"
 }
 
-function app {
-    Write-Output "Building Ollama App $script:VERSION with package version $script:PKG_VERSION"
 
-    if (!(Get-Command npm -ErrorAction SilentlyContinue)) {
-        Write-Output "npm is not installed. Please install Node.js and npm first:"
-        Write-Output "   Visit: https://nodejs.org/"
-        exit 1
-    }
-
-    if (!(Get-Command tsc -ErrorAction SilentlyContinue)) {
-        Write-Output "Installing TypeScript compiler..."
-        npm install -g typescript
-    }
-    if (!(Get-Command tscriptify -ErrorAction SilentlyContinue)) {
-        Write-Output "Installing tscriptify..."
-        go install github.com/tkrajina/typescriptify-golang-structs/tscriptify@latest
-    }
-    if (!(Get-Command tscriptify -ErrorAction SilentlyContinue)) {
-        $env:PATH="$env:PATH;$(go env GOPATH)\bin"
-    }
-
-    Push-Location app/ui/app
-    npm install
-    if ($LASTEXITCODE -ne 0) { 
-        Write-Output "ERROR: npm install failed with exit code $LASTEXITCODE"
-        exit $LASTEXITCODE
-    }
-
-    Write-Output "Building React application..."
-    npm run build
-    if ($LASTEXITCODE -ne 0) { 
-        Write-Output "ERROR: npm run build failed with exit code $LASTEXITCODE"
-        exit $LASTEXITCODE
-    }
-
-    # Check if dist directory exists and has content
-    if (!(Test-Path "dist")) {
-        Write-Output "ERROR: dist directory was not created by npm run build"
-        exit 1
-    }
-
-    $distFiles = Get-ChildItem "dist" -Recurse
-    if ($distFiles.Count -eq 0) {
-        Write-Output "ERROR: dist directory is empty after npm run build"
-        exit 1
-    }
-
-    Pop-Location
-
-    Write-Output "Running go generate"
-    & go generate ./...
-    if ($LASTEXITCODE -ne 0) { exit($LASTEXITCODE)}
-	& go build -trimpath -ldflags "-s -w -H windowsgui -X=github.com/ollama/ollama/app/version.Version=$script:VERSION" -o .\dist\windows-ollama-app-${script:ARCH}.exe ./app/cmd/app/
-    if ($LASTEXITCODE -ne 0) { exit($LASTEXITCODE)}
-}
 
 function deps {
     Write-Output "Download MSVC Redistributables"
@@ -411,21 +357,7 @@ function sign {
     }
 }
 
-function installer {
-    if ($null -eq ${script:INNO_SETUP_DIR}) {
-        Write-Output "ERROR: missing Inno Setup installation directory - install from https://jrsoftware.org/isdl.php"
-        exit 1
-    }
-    Write-Output "Building Ollama Installer"
-    cd "${script:SRC_DIR}\app"
-    $env:PKG_VERSION=$script:PKG_VERSION
-    if ("${env:KEY_CONTAINER}") {
-        & "${script:INNO_SETUP_DIR}\ISCC.exe" /DARCH=$script:TARGET_ARCH /SMySignTool="${script:SignTool} sign /fd sha256 /t http://timestamp.digicert.com /f ${script:OLLAMA_CERT} /csp `$qGoogle Cloud KMS Provider`$q /kc ${env:KEY_CONTAINER} `$f" .\ollama.iss
-    } else {
-        & "${script:INNO_SETUP_DIR}\ISCC.exe" /DARCH=$script:TARGET_ARCH .\ollama.iss
-    }
-    if ($LASTEXITCODE -ne 0) { exit($LASTEXITCODE)}
-}
+
 
 function newZipJob($sourceDir, $destZip) {
     $use7z = [bool](Get-Command 7z -ErrorAction SilentlyContinue)
@@ -532,10 +464,8 @@ try {
         vulkan
         mlxCuda13
         ollama
-        app
         deps
         sign
-        installer
         zip
     } else {
         for ( $i = 0; $i -lt $args.count; $i++ ) {

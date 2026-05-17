@@ -1,0 +1,248 @@
+<div class="flex h-screen w-full bg-white dark:bg-neutral-900 overflow-hidden">
+  
+  <!-- Sidebar Panel -->
+  <aside class="w-64 flex-shrink-0 flex flex-col border-r border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 transition-all duration-300 relative z-10">
+    <div class="flex items-center justify-between p-4 flex-none border-b border-transparent">
+      <div class="flex items-center gap-2 text-neutral-900 dark:text-white font-medium">
+        <div class="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center">
+          <svg class="w-5 h-5 text-white dark:text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+        </div>
+        <span>Ollama</span>
+      </div>
+      <button routerLink="/c/new" class="p-1.5 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+      </button>
+    </div>
+
+    <!-- Chat History List -->
+    <div class="flex-1 overflow-y-auto p-3 space-y-1">
+      <div class="text-xs font-semibold text-neutral-400 dark:text-neutral-500 mb-2 px-2 uppercase tracking-wider">Recent</div>
+      <a routerLink="/c/new" [class.bg-neutral-200]="chatId() === 'new'" [class.dark:bg-neutral-800]="chatId() === 'new'" class="block w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 truncate transition-colors font-medium">
+        New chat
+      </a>
+      
+      <!-- Iterate Real Chats -->
+      <a *ngFor="let chat of recentChats()" [routerLink]="['/c', chat.id]" [class.bg-neutral-200]="chatId() === chat.id" [class.dark:bg-neutral-800]="chatId() === chat.id" class="block w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 truncate transition-colors">
+        {{ chat.title || 'Untitled Chat' }}
+      </a>
+    </div>
+
+    <!-- Bottom User/Settings Panel -->
+    <div class="p-3 border-t border-neutral-200 dark:border-neutral-800 flex-none">
+      <button (click)="navigateToSettings()" class="flex items-center w-full gap-3 px-3 py-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-neutral-600 dark:text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Settings</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Chat Content -->
+  <main class="flex-1 flex flex-col min-w-0 relative">
+    
+    <!-- Model Picker Header -->
+    <header class="w-full h-[52px] flex items-center px-4 flex-none relative border-b border-neutral-200/50 dark:border-neutral-800/50">
+      <div class="flex items-center gap-3">
+        <button (click)="isModelDropdownOpen.set(!isModelDropdownOpen())" class="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 px-3 py-1.5 rounded-lg transition-colors">
+          {{ selectedModel() }}
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+        </button>
+        
+        <!-- Glowing Capability Badges & Context Window -->
+        <div class="flex items-center gap-1.5 ml-1">
+          <!-- Context Dropdown Trigger -->
+          <div class="relative">
+            <button (click)="isContextDropdownOpen.set(!isContextDropdownOpen())" 
+                    title="Select model-specific Context Window size"
+                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-300 dark:border-neutral-700 shadow-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 cursor-pointer transition-all active:scale-95">
+              📄 {{ formatContext(contextLength()) }} Context
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            
+            <!-- Context Selector Dropdown Menu -->
+            <div *ngIf="isContextDropdownOpen()" class="absolute top-[28px] left-0 w-64 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 overflow-hidden py-1">
+              <div class="px-3 py-1.5 border-b border-neutral-100 dark:border-neutral-700 text-[10px] uppercase font-bold text-neutral-400">
+                Context Length (Ceiling: {{ formatContext(modelMaxContext()) }})
+              </div>
+              <div class="max-h-60 overflow-y-auto">
+                <button *ngFor="let opt of modelContextOptions()" (click)="selectContext(opt)"
+                        [class.bg-neutral-100]="contextLength() === opt"
+                        [class.dark:bg-neutral-700]="contextLength() === opt"
+                        class="w-full text-left px-3 py-1.5 text-xs text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 font-medium flex items-center justify-between">
+                  <span>{{ formatContext(opt) }} Tokens</span>
+                  <span *ngIf="getContextWarning(opt)" class="text-[9px] text-amber-500 font-semibold flex items-center gap-0.5">
+                    ⚠️ {{ getContextWarning(opt) }}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Thinking Pill -->
+          <button *ngIf="hasThinking() && isThinkingEnabled()" (click)="toggleThinking()" title="Click to disable reasoning mode"
+                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 shadow-sm animate-pulse hover:scale-105 active:scale-95 transition-all cursor-pointer">
+            🧠 Reasoning
+          </button>
+          <button *ngIf="hasThinking() && !isThinkingEnabled()" (click)="toggleThinking()" title="Click to enable reasoning mode"
+                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-neutral-100 dark:bg-neutral-800/60 text-neutral-400 dark:text-neutral-500 border border-neutral-300 dark:border-neutral-700 shadow-sm hover:scale-105 hover:bg-neutral-200 dark:hover:bg-neutral-700 active:scale-95 transition-all cursor-pointer">
+            🧠 Reasoning (Disabled)
+          </button>
+          
+          <!-- Static informational capability badges -->
+          <span *ngIf="hasVision()" title="This model natively supports multi-modal image inputs"
+                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 shadow-sm">
+            👁️ Vision
+          </span>
+          <span *ngIf="currentModelCapabilities().includes('tools')" title="This model natively supports tool calling and agent operations"
+                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-sm">
+            🛠️ Tools
+          </span>
+        </div>
+      </div>
+
+      <!-- Dropdown Menu -->
+      <div *ngIf="isModelDropdownOpen()" class="absolute top-[48px] left-4 w-64 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 overflow-hidden">
+        <div class="max-h-64 overflow-y-auto">
+          <button *ngFor="let model of models()" (click)="selectModel(model.model)" class="w-full text-left px-4 py-2 text-sm text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 font-medium">
+            {{ model.model }}
+          </button>
+          <div *ngIf="models().length === 0" class="px-4 py-3 text-sm text-neutral-500">No models found</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Message List -->
+    <section #scrollContainer class="flex-1 overflow-y-auto overscroll-contain relative min-h-0 select-text p-4 xl:pt-8 flex flex-col gap-6 scroll-smooth">
+      <div *ngIf="messages().length === 0" class="flex-1 flex items-center justify-center">
+        <h2 class="text-2xl font-semibold text-neutral-400 dark:text-neutral-500">How can I help you today?</h2>
+      </div>
+
+      <div *ngFor="let msg of messages(); let last = last" class="max-w-3xl mx-auto w-full flex" [ngClass]="{'justify-end': msg.role === 'user', 'justify-start': msg.role !== 'user'}">
+        <div *ngIf="msg.role !== 'user'" class="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center mr-3 flex-shrink-0 mt-1">
+          <svg class="w-5 h-5 text-white dark:text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+        </div>
+        
+        <!-- Render Markdown for Assistant or Text for User -->
+        <div class="px-5 py-3 rounded-2xl max-w-[80%] overflow-hidden" 
+            [ngClass]="msg.role === 'user' ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white' : 'bg-transparent text-neutral-900 dark:text-neutral-100 leading-relaxed'">
+          
+          <!-- Show attached images in user's bubble -->
+          <div *ngIf="$any(msg).images && $any(msg).images.length > 0" class="flex flex-wrap gap-2 mb-3">
+            <img *ngFor="let img of $any(msg).images" [src]="img" class="max-w-[200px] max-h-[200px] object-cover rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-sm" />
+          </div>
+
+          <!-- Show attached documents in user's bubble -->
+          <div *ngIf="$any(msg).documents && $any(msg).documents.length > 0" class="flex flex-wrap gap-2 mb-3">
+            <div *ngFor="let docName of $any(msg).documents" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-200/60 dark:bg-neutral-800/60 text-xs text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700 shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>{{ docName }}</span>
+            </div>
+          </div>
+
+          <div [innerHTML]="formatMarkdown(msg.content)"></div>
+          
+          <!-- Streaming indicator inside the bubble -->
+          <div *ngIf="msg.role !== 'user' && last && isStreaming() && msg.content === ''" class="flex items-center gap-2 h-6">
+            <span class="w-2 h-2 rounded-full bg-neutral-400 dark:bg-neutral-500 animate-bounce"></span>
+            <span class="w-2 h-2 rounded-full bg-neutral-400 dark:bg-neutral-500 animate-bounce" style="animation-delay: 0.2s"></span>
+            <span class="w-2 h-2 rounded-full bg-neutral-400 dark:bg-neutral-500 animate-bounce" style="animation-delay: 0.4s"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Input Form -->
+    <div class="flex-shrink-0 z-20 bg-transparent p-4 pb-8 mt-auto">
+      <div class="max-w-3xl mx-auto relative flex flex-col bg-neutral-100 dark:bg-neutral-800 rounded-3xl border border-neutral-200 dark:border-neutral-700 focus-within:ring-1 focus-within:ring-neutral-300 dark:focus-within:ring-neutral-600 transition-all shadow-sm">
+        
+        <!-- Attachment Previews -->
+        <div *ngIf="attachments().length > 0" class="flex flex-wrap gap-2 p-3 pb-0">
+          <div *ngFor="let file of attachments(); let i = index" class="relative group">
+            <!-- Image attachment preview -->
+            <img *ngIf="file.type === 'image'" [src]="file.url" class="w-16 h-16 object-cover rounded-lg border border-neutral-300 dark:border-neutral-600 shadow-sm" />
+            
+            <!-- Text Document/RAG attachment preview -->
+            <div *ngIf="file.type === 'document'" class="w-16 h-16 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 flex flex-col items-center justify-center p-1.5 relative shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span class="text-[9px] text-neutral-500 font-medium truncate w-full text-center mt-1 px-0.5">{{ file.filename }}</span>
+            </div>
+
+            <button (click)="removeAttachment(i)" class="absolute -top-2 -right-2 bg-neutral-900 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-end w-full">
+          <!-- Hidden file input: Accepts images, text, csv, pdf, json, md, etc. conditionally based on vision support -->
+          <input type="file" multiple [accept]="hasVision() ? 'image/*,text/*,.pdf,.doc,.docx,.csv,.json,.md,.py,.js,.ts' : 'text/*,.pdf,.doc,.docx,.csv,.json,.md,.py,.js,.ts'" class="hidden" #fileInput (change)="onFileSelected($event)">
+          
+          <!-- Universal Attach Button for Images (Vision) and Text Documents (RAG) -->
+          <button (click)="triggerFileInput()" [title]="hasVision() ? 'Attach images or documents for RAG' : 'Attach documents for RAG (image attachment requires vision model)'"
+                  class="mb-2.5 ml-2 p-2 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-500 cursor-pointer transition-colors flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+          </button>
+
+          <textarea 
+            [ngModel]="inputText()" 
+            (ngModelChange)="inputText.set($event)"
+            (keydown.enter)="$event.preventDefault(); handleSubmit()"
+            placeholder="Message Ollama..."
+            class="w-full bg-transparent border-none focus:ring-0 resize-none max-h-[200px] min-h-[56px] py-4 px-2 text-neutral-900 dark:text-white outline-none placeholder:text-neutral-500"
+            rows="1">
+          </textarea>
+          
+          <!-- Dynamic Action Button: Send Message vs. Stop Generation -->
+          <button 
+            *ngIf="!isStreaming()"
+            (click)="handleSubmit()"
+            [disabled]="(!inputText().trim() && attachments().length === 0)"
+            class="mb-2 mr-2 p-2 rounded-full transition-colors flex-shrink-0 bg-black dark:bg-white text-white dark:text-black shadow-sm disabled:bg-neutral-200 dark:disabled:bg-neutral-700 disabled:text-neutral-400 dark:disabled:text-neutral-500"
+            title="Send Message">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.707 9.293a1 1 0 000-1.414l-4-4a1 1 0 00-1.414 0l-4 4a1 1 0 101.414 1.414L9 6.414V15a1 1 0 102 0V6.414l2.293 2.293a1 1 0 001.414 0z" clip-rule="evenodd" /></svg>
+          </button>
+
+          <button 
+            *ngIf="isStreaming()"
+            (click)="stopStreaming()"
+            class="mb-2 mr-2 p-2 rounded-full transition-colors flex-shrink-0 bg-neutral-900 dark:bg-white text-red-500 dark:text-red-500 hover:scale-105 active:scale-95 shadow-sm"
+            title="Stop Generation">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12" rx="1.5" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Dynamic Token and Context Truncation Warning Bar -->
+        <div class="px-4 py-2 border-t border-neutral-200/50 dark:border-neutral-800/50 flex flex-col md:flex-row md:items-center justify-between gap-2 text-[10px] text-neutral-500 font-semibold">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span>Message: <strong class="text-neutral-700 dark:text-neutral-300">~{{ estimateTokens(inputText()) }}</strong> tokens</span>
+            <span class="opacity-30">|</span>
+            <span>History: <strong class="text-neutral-700 dark:text-neutral-300">~{{ getChatHistoryTokens() }} / {{ formatContext(contextLength()) }}</strong> tokens</span>
+            <span *ngIf="getContextProgress() >= 80" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 text-[9px] font-bold animate-pulse">
+              ⚠️ Context full
+            </span>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <!-- Micro capacity indicator progress bar -->
+            <div class="w-24 h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden flex">
+              <div class="h-full rounded-full transition-all duration-300"
+                   [ngClass]="getContextProgress() >= 80 ? 'bg-red-500' : getContextProgress() >= 50 ? 'bg-amber-500' : 'bg-neutral-400 dark:bg-neutral-500'"
+                   [style.width.%]="getContextProgress()"></div>
+            </div>
+            <span [ngClass]="getContextProgress() >= 80 ? 'text-red-500 font-bold' : getContextProgress() >= 50 ? 'text-amber-500 font-bold' : ''">{{ getContextProgress() }}% Filled</span>
+          </div>
+        </div>
+
+      </div>
+      <div class="text-center mt-3">
+        <span class="text-[11px] text-neutral-400 dark:text-neutral-500">Ollama can make mistakes. Verify important information.</span>
+      </div>
+    </div>
+
+  </main>
+</div>
