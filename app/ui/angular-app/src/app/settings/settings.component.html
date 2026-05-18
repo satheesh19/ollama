@@ -79,11 +79,13 @@
               type="range" 
               [ngModel]="settings().contextLength"
               (ngModelChange)="updateSetting('contextLength', $event)"
-              min="4096" [max]="modelMaxContext()" step="4096" 
+              [min]="modelMaxContext() < 4096 ? modelMaxContext() : 4096" 
+              [max]="modelMaxContext()" 
+              [step]="modelMaxContext() < 4096 ? modelMaxContext() : 4096" 
               class="w-full accent-neutral-900 dark:accent-white" />
             
             <div class="flex justify-between text-[10px] text-neutral-400 mt-1">
-              <span>Min: 4k (4,096)</span>
+              <span>Min: {{ modelMaxContext() < 4096 ? (modelMaxContext() / 1024).toFixed(0) + 'k' : '4k' }} ({{ (modelMaxContext() < 4096 ? modelMaxContext() : 4096).toLocaleString() }})</span>
               <span>Max: {{ modelMaxContext() >= 1048576 ? (modelMaxContext() / 1048576).toFixed(0) + 'M' : (modelMaxContext() / 1024).toFixed(0) + 'k' }} ({{ modelMaxContext().toLocaleString() }}) [Active: {{ modelName() }}]</span>
             </div>
 

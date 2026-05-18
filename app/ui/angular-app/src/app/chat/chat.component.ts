@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, ElementRef, ViewChild, computed, effect } from '@angular/core';
+import { Component, OnInit, signal, ElementRef, ViewChild, computed, effect, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -39,6 +39,9 @@ export class ChatComponent implements OnInit {
   isContextDropdownOpen = signal<boolean>(false);
   modelMaxContext = signal<number>(8192);
   activeAbortController = signal<AbortController | null>(null);
+  isSidebarOpen = signal<boolean>(true);
+  isOllamaOnline = signal<boolean>(true);
+  isMobileOptionsOpen = signal<boolean>(false);
 
   // Dynamic host system VRAM profile tracking
   systemVRAM = signal<number>(8.0); // Default fallback VRAM size (8GB)
@@ -50,7 +53,8 @@ export class ChatComponent implements OnInit {
     public route: ActivatedRoute,
     public router: Router,
     private api: ApiService,
-    private db: DbService
+    private db: DbService,
+    private el: ElementRef
   ) {
     // Automatically load capabilities whenever the model is switched
     effect(() => {
@@ -65,9 +69,16 @@ export class ChatComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.isSidebarOpen.set(window.innerWidth >= 768);
+
     this.route.paramMap.subscribe(params => {
       const id = params.get('chatId') || 'new';
       this.chatId.set(id);
+
+      if (this.isMobile()) {
+        this.isSidebarOpen.set(false);
+        this.isMobileOptionsOpen.set(false);
+      }
 
       if (id !== 'new') {
         this.loadChat(id);
@@ -104,6 +115,64 @@ export class ChatComponent implements OnInit {
 
     this.loadModels();
     this.loadRecentChats();
+
+    // Monitor daemon connectivity status
+    this.checkOllamaConnection();
+    setInterval(() => {
+      this.checkOllamaConnection();
+    }, 10000);
+  }
+
+  isMobile(): boolean {
+    return typeof window !== 'undefined' && window.innerWidth < 768;
+  }
+
+  isCollapsedHeader(): boolean {
+    return typeof window !== 'undefined' && window.innerWidth < 1024;
+  }
+
+  toggleSidebar() {
+    this.isSidebarOpen.update(o => !o);
+  }
+
+  toggleMobileOptions() {
+    this.isMobileOptionsOpen.update(o => !o);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target) return;
+
+    // Check if the click was inside the model picker container
+    if (this.isModelDropdownOpen() && !target.closest('.model-picker-container')) {
+      this.isModelDropdownOpen.set(false);
+    }
+
+    // Check if the click was inside the context dropdown container (both desktop and mobile container)
+    if (this.isContextDropdownOpen() && !target.closest('.context-picker-container') && !target.closest('.context-picker-container-mobile')) {
+      this.isContextDropdownOpen.set(false);
+    }
+
+    // Check if the click was inside the mobile/desktop options cog panel container
+    if (this.isMobileOptionsOpen() && !target.closest('.model-options-container')) {
+      this.isMobileOptionsOpen.set(false);
+    }
+  }
+
+  checkOllamaConnection() {
+    this.api.getModels().subscribe({
+      next: () => this.isOllamaOnline.set(true),
+      error: () => this.isOllamaOnline.set(false)
+    });
+  }
+
+  handleEnterKey(event: Event) {
+    event.preventDefault();
+    if (!this.isOllamaOnline() || this.isStreaming()) {
+      return;
+    }
+    this.handleSubmit();
   }
 
   scrollToBottom() {
@@ -162,8 +231,14 @@ export class ChatComponent implements OnInit {
       if (existingIdx >= 0) {
         chats[existingIdx].title = title + '...';
         chats[existingIdx].model = this.selectedModel();
+        chats[existingIdx].contextLength = this.contextLength(); // Save selected context length!
       } else {
-        chats.unshift({ id: this.chatId(), title: title + '...', model: this.selectedModel() });
+        chats.unshift({ 
+          id: this.chatId(), 
+          title: title + '...', 
+          model: this.selectedModel(),
+          contextLength: this.contextLength() // Save selected context length!
+        });
       }
 
       this.recentChats.set(chats);
@@ -186,8 +261,13 @@ export class ChatComponent implements OnInit {
 
       // Auto-switch to model used for this chat
       const chatInfo = this.recentChats().find(c => c.id === id) as any;
-      if (chatInfo && chatInfo.model) {
-        this.selectedModel.set(chatInfo.model);
+      if (chatInfo) {
+        if (chatInfo.model) {
+          this.selectedModel.set(chatInfo.model);
+        }
+        if (chatInfo.contextLength) {
+          this.contextLength.set(chatInfo.contextLength);
+        }
       }
     } catch (e) {
       this.messages.set([]);
@@ -265,10 +345,43 @@ export class ChatComponent implements OnInit {
         //console.log(`Resolved maximum context ceiling for ${modelName}: ${maxCtx}`);
         this.modelMaxContext.set(maxCtx);
 
-        // 2. Safe Auto-Clamping: If current context exceeds model maximum, clamp it instantly!
-        if (this.contextLength() > maxCtx) {
-          console.warn(`Configured context length (${this.contextLength()}) exceeds model maximum (${maxCtx}). Auto-clamping to protect memory.`);
-          this.selectContext(maxCtx);
+        // 1. Resolve max context ceiling
+        this.modelMaxContext.set(maxCtx);
+
+        // 2. Calculate safe hardware limit
+        const totalVram = this.systemVRAM();
+        const modelWeight = this.modelSizeGB();
+        const freeVram = totalVram - modelWeight;
+        let hardwareLimit = maxCtx;
+        if (freeVram <= 1.5) {
+          hardwareLimit = 8192;
+        } else if (freeVram <= 4.0) {
+          hardwareLimit = 16384;
+        } else if (freeVram <= 8.0) {
+          hardwareLimit = 32768;
+        }
+        const resolvedMax = Math.min(maxCtx, hardwareLimit);
+
+        // 3. Resolve context length to default:
+        // Check if current chat info has a saved model/context selection
+        const chatInfo = this.recentChats().find(c => c.id === this.chatId()) as any;
+        if (chatInfo && chatInfo.contextLength) {
+          // Use chat's previous custom context length selection, clamped to safe maximum
+          this.contextLength.set(Math.min(chatInfo.contextLength, resolvedMax));
+        } else {
+          // Check if user set a global preference in local storage
+          try {
+            const saved = localStorage.getItem('ollama_ui_settings');
+            const s = saved ? JSON.parse(saved) : null;
+            if (s && s.contextLength) {
+              this.contextLength.set(Math.min(Number(s.contextLength), resolvedMax));
+            } else {
+              // Default to the full context selector maximum (resolvedMax) instead of minimum fallback!
+              this.contextLength.set(resolvedMax);
+            }
+          } catch (e) {
+            this.contextLength.set(resolvedMax);
+          }
         }
       },
       error: (err) => {

@@ -1,6 +1,9 @@
-# Standalone Ollama Chat UI (Angular 19)
+# Logical Apps SAM UI - Standalone Ollama Chat UI (Angular 19)
+# samui: Just a breezy chat interface for your remote Ollama server.
+## Self-contained & Air-gapped Model (SAM)
+### Your hardware. Your data. Your UI.
 
-This directory houses the **100% independent** frontend application for Ollama. 
+This directory houses the **100% independent** frontend application for SAM UI. 
 
 It is designed as a pure, zero-backend, purely client-side Single Page Application (SPA). It has absolutely no direct knowledge of Go, native binary compilation, or daemon configuration. It operates entirely inside the browser's sandbox, utilizing standard browser storage (`localStorage`) to achieve stateless, local-first chat history and advanced model configuration persistence.
 

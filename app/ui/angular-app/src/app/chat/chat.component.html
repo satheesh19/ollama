@@ -1,13 +1,55 @@
 <div class="flex h-screen w-full bg-white dark:bg-neutral-900 overflow-hidden">
   
+  <!-- Mobile Sidebar Backdrop Overlay -->
+  <div 
+    *ngIf="isSidebarOpen() && isMobile()" 
+    (click)="isSidebarOpen.set(false)" 
+    class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden transition-opacity duration-300">
+  </div>
+
   <!-- Sidebar Panel -->
-  <aside class="w-64 flex-shrink-0 flex flex-col border-r border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 transition-all duration-300 relative z-10">
+  <aside 
+    [class.w-64]="isSidebarOpen()" 
+    [class.w-0]="!isSidebarOpen()"
+    [class.opacity-0]="!isSidebarOpen() && !isMobile()"
+    [class.translate-x-0]="isSidebarOpen()"
+    [class.-translate-x-full]="!isSidebarOpen()"
+    class="flex-shrink-0 flex flex-col border-r border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 transition-all duration-300 md:relative md:translate-x-0 absolute inset-y-0 left-0 z-40 overflow-hidden md:opacity-100 md:z-10">
     <div class="flex items-center justify-between p-4 flex-none border-b border-transparent">
-      <div class="flex items-center gap-2 text-neutral-900 dark:text-white font-medium">
-        <div class="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center">
-          <svg class="w-5 h-5 text-white dark:text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+      <div class="flex items-center gap-2.5 text-neutral-900 dark:text-white font-semibold">
+        <!-- System-Aware Pulsing Aura Logo -->
+        <div class="relative w-8 h-8 flex-shrink-0">
+          <!-- Dynamic Glow Aura background -->
+          <div 
+            [ngClass]="{
+              'bg-red-500/20 shadow-red-500/20 scale-125': !isOllamaOnline(),
+              'bg-purple-500/35 shadow-purple-500/40 animate-pulse-fast scale-135': isStreaming() && isOllamaOnline(),
+              'bg-emerald-500/15 shadow-emerald-500/10 scale-105': isOllamaOnline() && !isStreaming()
+            }"
+            class="absolute inset-0 rounded-full blur-[4px] transition-all duration-700 animate-pulse">
+          </div>
+          
+          <!-- Inner Solid Orb Shield -->
+          <div 
+            [ngClass]="{
+              'border-red-500/40 bg-neutral-900': !isOllamaOnline(),
+              'border-purple-500/40 bg-purple-950/20': isStreaming() && isOllamaOnline(),
+              'border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-950': isOllamaOnline() && !isStreaming()
+            }"
+            class="relative w-full h-full rounded-full border flex items-center justify-center transition-all duration-500">
+            <!-- Center Indicator Dot -->
+            <div 
+              [ngClass]="{
+                'bg-red-500 shadow-[0_0_10px_#ef4444]': !isOllamaOnline(),
+                'bg-purple-500 shadow-[0_0_14px_#a855f7] animate-ping-slow': isStreaming() && isOllamaOnline(),
+                'bg-emerald-500 shadow-[0_0_8px_#10b981]': isOllamaOnline() && !isStreaming()
+              }"
+              class="w-2.5 h-2.5 rounded-full transition-all duration-500">
+            </div>
+          </div>
         </div>
-        <span>Ollama</span>
+        
+        <span class="tracking-wide">SAM UI</span>
       </div>
       <button routerLink="/c/new" class="p-1.5 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -40,31 +82,74 @@
   <main class="flex-1 flex flex-col min-w-0 relative">
     
     <!-- Model Picker Header -->
-    <header class="w-full h-[52px] flex items-center px-4 flex-none relative border-b border-neutral-200/50 dark:border-neutral-800/50">
-      <div class="flex items-center gap-3">
-        <button (click)="isModelDropdownOpen.set(!isModelDropdownOpen())" class="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 px-3 py-1.5 rounded-lg transition-colors">
-          {{ selectedModel() }}
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+    <header class="w-full h-[52px] flex items-center justify-between px-4 flex-none relative border-b border-neutral-200/50 dark:border-neutral-800/50">
+      <!-- Left side: Hamburger Menu & Model Selector -->
+      <div class="flex items-center gap-2 md:gap-3">
+        <!-- Sidebar Toggle Hamburger Button -->
+        <button (click)="toggleSidebar()" class="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 mr-0.5 flex-shrink-0 transition-colors" title="Toggle Sidebar">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
+
+        <!-- Model Picker Selector (Fixed constant width for both mobile and desktop) -->
+        <div class="relative model-picker-container">
+          <button (click)="isModelDropdownOpen.set(!isModelDropdownOpen())" class="w-48 sm:w-56 flex items-center justify-between text-neutral-800 dark:text-neutral-200 font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 px-3 py-1.5 rounded-lg transition-colors text-sm sm:text-base">
+            <span class="truncate">{{ selectedModel() }}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 opacity-50 flex-shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+          </button>
+          
+          <!-- Model Dropdown Menu (Anchored to Trigger) -->
+          <div *ngIf="isModelDropdownOpen()" class="absolute top-[42px] left-0 w-64 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 overflow-hidden py-1">
+            <div class="max-h-64 overflow-y-auto">
+              <button *ngFor="let model of models()" (click)="selectModel(model.model); isModelDropdownOpen.set(false)" class="w-full text-left px-4 py-2 text-sm text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 font-medium">
+                {{ model.model }}
+              </button>
+              <div *ngIf="models().length === 0" class="px-4 py-3 text-sm text-neutral-500">No models found</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side: Desktop Inline Options (lg:flex) & Mobile Options Cog Button (lg:hidden) -->
+      <div class="flex items-center gap-2">
         
-        <!-- Glowing Capability Badges & Context Window -->
-        <div class="flex items-center gap-1.5 ml-1">
-          <!-- Context Dropdown Trigger -->
-          <div class="relative">
+        <!-- Large Screen Inline Badges (Visible on lg screens (1024px) or wider, e.g. 14" laptops) -->
+        <div class="hidden lg:flex items-center gap-1.5">
+          <!-- Desktop Reasoning Toggle -->
+          <button *ngIf="hasThinking() && isThinkingEnabled()" (click)="toggleThinking()" title="Click to disable reasoning mode"
+                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 shadow-sm animate-pulse hover:scale-105 active:scale-95 transition-all cursor-pointer">
+            🧠 Reasoning
+          </button>
+          <button *ngIf="hasThinking() && !isThinkingEnabled()" (click)="toggleThinking()" title="Click to enable reasoning mode"
+                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-neutral-100 dark:bg-neutral-800/60 text-neutral-400 dark:text-neutral-500 border border-neutral-300 dark:border-neutral-700 shadow-sm hover:scale-105 hover:bg-neutral-200 dark:hover:bg-neutral-700 active:scale-95 transition-all cursor-pointer">
+            🧠 Reasoning (Disabled)
+          </button>
+          
+          <!-- Static Capability Badges -->
+          <span *ngIf="hasVision()" title="This model natively supports multi-modal image inputs"
+                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 shadow-sm">
+            👁️ Vision
+          </span>
+          <span *ngIf="currentModelCapabilities().includes('tools')" title="This model natively supports tool calling and agent operations"
+                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-sm">
+            🛠️ Tools
+          </span>
+
+          <!-- Desktop Context Dropdown Trigger -->
+          <div class="relative context-picker-container">
             <button (click)="isContextDropdownOpen.set(!isContextDropdownOpen())" 
                     title="Select model-specific Context Window size"
                     class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-300 dark:border-neutral-700 shadow-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 cursor-pointer transition-all active:scale-95">
               📄 {{ formatContext(contextLength()) }} Context
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 opacity-60 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
             </button>
             
-            <!-- Context Selector Dropdown Menu -->
-            <div *ngIf="isContextDropdownOpen()" class="absolute top-[28px] left-0 w-64 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 overflow-hidden py-1">
+            <!-- Desktop Context Dropdown Menu (Aligned Right to trigger so it does not overflow leftward) -->
+            <div *ngIf="isContextDropdownOpen() && !isCollapsedHeader()" class="absolute top-[28px] right-0 w-64 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 overflow-hidden py-1">
               <div class="px-3 py-1.5 border-b border-neutral-100 dark:border-neutral-700 text-[10px] uppercase font-bold text-neutral-400">
                 Context Length (Ceiling: {{ formatContext(modelMaxContext()) }})
               </div>
               <div class="max-h-60 overflow-y-auto">
-                <button *ngFor="let opt of modelContextOptions()" (click)="selectContext(opt)"
+                <button *ngFor="let opt of modelContextOptions()" (click)="selectContext(opt); isContextDropdownOpen.set(false)"
                         [class.bg-neutral-100]="contextLength() === opt"
                         [class.dark:bg-neutral-700]="contextLength() === opt"
                         class="w-full text-left px-3 py-1.5 text-xs text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 font-medium flex items-center justify-between">
@@ -77,35 +162,96 @@
             </div>
           </div>
 
-          <!-- Interactive Thinking Pill -->
-          <button *ngIf="hasThinking() && isThinkingEnabled()" (click)="toggleThinking()" title="Click to disable reasoning mode"
-                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 shadow-sm animate-pulse hover:scale-105 active:scale-95 transition-all cursor-pointer">
-            🧠 Reasoning
-          </button>
-          <button *ngIf="hasThinking() && !isThinkingEnabled()" (click)="toggleThinking()" title="Click to enable reasoning mode"
-                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-neutral-100 dark:bg-neutral-800/60 text-neutral-400 dark:text-neutral-500 border border-neutral-300 dark:border-neutral-700 shadow-sm hover:scale-105 hover:bg-neutral-200 dark:hover:bg-neutral-700 active:scale-95 transition-all cursor-pointer">
-            🧠 Reasoning (Disabled)
-          </button>
-          
-          <!-- Static informational capability badges -->
-          <span *ngIf="hasVision()" title="This model natively supports multi-modal image inputs"
-                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 shadow-sm">
-            👁️ Vision
-          </span>
-          <span *ngIf="currentModelCapabilities().includes('tools')" title="This model natively supports tool calling and agent operations"
-                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-sm">
-            🛠️ Tools
-          </span>
         </div>
-      </div>
 
-      <!-- Dropdown Menu -->
-      <div *ngIf="isModelDropdownOpen()" class="absolute top-[48px] left-4 w-64 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 overflow-hidden">
-        <div class="max-h-64 overflow-y-auto">
-          <button *ngFor="let model of models()" (click)="selectModel(model.model)" class="w-full text-left px-4 py-2 text-sm text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 font-medium">
-            {{ model.model }}
+        <!-- Ollama Connectivity Status Badge (Visible in all sizes: left of model options button on mobile, rightmost on large screens) -->
+        <span 
+          *ngIf="isOllamaOnline()"
+          title="Ollama local daemon connection active"
+          class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-500 border border-green-500/20 shadow-sm transition-all flex-shrink-0">
+          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
+          Online
+        </span>
+        <span 
+          *ngIf="!isOllamaOnline()"
+          title="Ollama local daemon offline. Open Ollama app on system."
+          class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-sm transition-all flex-shrink-0">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping flex-shrink-0"></span>
+          Offline
+        </span>
+
+        <!-- Mobile/Small Screen Model Options Button & Popover (Hidden on lg (1024px) screens or wider) -->
+        <div class="relative model-options-container lg:hidden">
+          <!-- Model Options Button -->
+          <button (click)="toggleMobileOptions()" 
+                  class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors flex-shrink-0" 
+                  title="Model Settings & Options">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
           </button>
-          <div *ngIf="models().length === 0" class="px-4 py-3 text-sm text-neutral-500">No models found</div>
+
+          <!-- Model Configuration Sheet Dropdown (Floating right under the button) -->
+          <div *ngIf="isMobileOptionsOpen() && isCollapsedHeader()" class="absolute top-[42px] right-0 w-72 bg-white dark:bg-neutral-800 border border-neutral-200/60 dark:border-neutral-700/60 rounded-2xl shadow-xl z-50 p-4 space-y-4 animate-fade-in-up">
+            <div class="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-700 pb-2">
+              <span class="text-xs font-bold text-neutral-400 uppercase tracking-wider">Model Options</span>
+            </div>
+            
+            <!-- Context Length Option -->
+            <div class="space-y-1.5 relative context-picker-container-mobile">
+              <div class="flex justify-between text-xs">
+                <span class="font-medium text-neutral-500">Context Length</span>
+                <span class="font-semibold text-neutral-800 dark:text-neutral-200">{{ formatContext(contextLength()) }} Tokens</span>
+              </div>
+              <button (click)="isContextDropdownOpen.set(!isContextDropdownOpen())" class="w-full inline-flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300">
+                <span>📄 {{ formatContext(contextLength()) }} Context</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              
+              <!-- Context Dropdown inside Mobile Popover -->
+              <div *ngIf="isContextDropdownOpen()" class="absolute top-[56px] left-0 w-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg z-50 overflow-hidden py-1">
+                <div class="px-3 py-1.5 border-b border-neutral-100 dark:border-neutral-700 text-[10px] uppercase font-bold text-neutral-400">
+                  Ceiling: {{ formatContext(modelMaxContext()) }}
+                </div>
+                <div class="max-h-40 overflow-y-auto">
+                  <button *ngFor="let opt of modelContextOptions()" (click)="selectContext(opt); isContextDropdownOpen.set(false); isMobileOptionsOpen.set(false)"
+                          [class.bg-neutral-100]="contextLength() === opt"
+                          [class.dark:bg-neutral-700]="contextLength() === opt"
+                          class="w-full text-left px-3 py-1.5 text-xs text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 font-medium flex items-center justify-between">
+                    <span>{{ formatContext(opt) }} Tokens</span>
+                    <span *ngIf="getContextWarning(opt)" class="text-[9px] text-amber-500 font-semibold">⚠️</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Interactive Thinking Option -->
+            <div *ngIf="hasThinking()" class="flex items-center justify-between">
+              <span class="text-xs font-medium text-neutral-500">Reasoning Mode</span>
+              <button (click)="toggleThinking()" 
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm"
+                      [class.bg-purple-100]="isThinkingEnabled()" [class.dark:bg-purple-950/60]="isThinkingEnabled()" [class.text-purple-700]="isThinkingEnabled()" [class.dark:text-purple-300]="isThinkingEnabled()" [class.border]="isThinkingEnabled()" [class.border-purple-300]="isThinkingEnabled()" [class.dark:border-purple-800]="isThinkingEnabled()"
+                      [class.bg-neutral-100]="!isThinkingEnabled()" [class.dark:bg-neutral-900]="!isThinkingEnabled()" [class.text-neutral-400]="!isThinkingEnabled()" [class.dark:text-neutral-500]="!isThinkingEnabled()" [class.border]="!isThinkingEnabled()" [class.border-neutral-200]="!isThinkingEnabled()" [class.dark:border-neutral-800]="!isThinkingEnabled()">
+                🧠 {{ isThinkingEnabled() ? 'Enabled' : 'Disabled' }}
+              </button>
+            </div>
+            
+            <!-- Passive Capabilities Option -->
+            <div class="space-y-1.5">
+              <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">Model Capabilities</span>
+              <div class="flex gap-2 flex-wrap">
+                <span *ngIf="hasVision()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+                  👁️ Vision
+                </span>
+                <span *ngIf="currentModelCapabilities().includes('tools')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                  🛠️ Tools
+                </span>
+                <span *ngIf="!hasVision() && !currentModelCapabilities().includes('tools')" class="text-xs text-neutral-400">
+                  Standard Text Completion
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </header>
@@ -181,17 +327,18 @@
           <input type="file" multiple [accept]="hasVision() ? 'image/*,text/*,.pdf,.doc,.docx,.csv,.json,.md,.py,.js,.ts' : 'text/*,.pdf,.doc,.docx,.csv,.json,.md,.py,.js,.ts'" class="hidden" #fileInput (change)="onFileSelected($event)">
           
           <!-- Universal Attach Button for Images (Vision) and Text Documents (RAG) -->
-          <button (click)="triggerFileInput()" [title]="hasVision() ? 'Attach images or documents for RAG' : 'Attach documents for RAG (image attachment requires vision model)'"
-                  class="mb-2.5 ml-2 p-2 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-500 cursor-pointer transition-colors flex-shrink-0">
+          <button [disabled]="!isOllamaOnline()" (click)="triggerFileInput()" [title]="!isOllamaOnline() ? 'System Offline' : (hasVision() ? 'Attach images or documents for RAG' : 'Attach documents for RAG (image attachment requires vision model)')"
+                  class="mb-2.5 ml-2 p-2 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-500 cursor-pointer transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
           </button>
-
+ 
           <textarea 
             [ngModel]="inputText()" 
             (ngModelChange)="inputText.set($event)"
-            (keydown.enter)="$event.preventDefault(); handleSubmit()"
-            placeholder="Message Ollama..."
-            class="w-full bg-transparent border-none focus:ring-0 resize-none max-h-[200px] min-h-[56px] py-4 px-2 text-neutral-900 dark:text-white outline-none placeholder:text-neutral-500"
+            (keydown.enter)="handleEnterKey($event)"
+            [placeholder]="isOllamaOnline() ? 'Message SAM...' : 'System Offline. Please launch Ollama daemon on your system.'"
+            [disabled]="!isOllamaOnline()"
+            class="w-full bg-transparent border-none focus:ring-0 resize-none max-h-[200px] min-h-[56px] py-4 px-2 text-neutral-900 dark:text-white outline-none placeholder:text-neutral-500 disabled:cursor-not-allowed disabled:opacity-40"
             rows="1">
           </textarea>
           
@@ -199,12 +346,12 @@
           <button 
             *ngIf="!isStreaming()"
             (click)="handleSubmit()"
-            [disabled]="(!inputText().trim() && attachments().length === 0)"
+            [disabled]="(!inputText().trim() && attachments().length === 0) || !isOllamaOnline()"
             class="mb-2 mr-2 p-2 rounded-full transition-colors flex-shrink-0 bg-black dark:bg-white text-white dark:text-black shadow-sm disabled:bg-neutral-200 dark:disabled:bg-neutral-700 disabled:text-neutral-400 dark:disabled:text-neutral-500"
             title="Send Message">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.707 9.293a1 1 0 000-1.414l-4-4a1 1 0 00-1.414 0l-4 4a1 1 0 101.414 1.414L9 6.414V15a1 1 0 102 0V6.414l2.293 2.293a1 1 0 001.414 0z" clip-rule="evenodd" /></svg>
           </button>
-
+ 
           <button 
             *ngIf="isStreaming()"
             (click)="stopStreaming()"
@@ -215,7 +362,7 @@
             </svg>
           </button>
         </div>
-
+ 
         <!-- Dynamic Token and Context Truncation Warning Bar -->
         <div class="px-4 py-2 border-t border-neutral-200/50 dark:border-neutral-800/50 flex flex-col md:flex-row md:items-center justify-between gap-2 text-[10px] text-neutral-500 font-semibold">
           <div class="flex items-center gap-1.5 flex-wrap">
@@ -237,10 +384,10 @@
             <span [ngClass]="getContextProgress() >= 80 ? 'text-red-500 font-bold' : getContextProgress() >= 50 ? 'text-amber-500 font-bold' : ''">{{ getContextProgress() }}% Filled</span>
           </div>
         </div>
-
+ 
       </div>
       <div class="text-center mt-3">
-        <span class="text-[11px] text-neutral-400 dark:text-neutral-500">Ollama can make mistakes. Verify important information.</span>
+        <span class="text-[11px] text-neutral-400 dark:text-neutral-500">SAM UI can make mistakes. Verify important information.</span>
       </div>
     </div>
 

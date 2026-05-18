@@ -7,13 +7,18 @@ export class DbService {
   private dbName = 'OllamaUIDB';
   private storeName = 'chats';
   private db: IDBDatabase | null = null;
+  private dbPromise: Promise<IDBDatabase> | null = null;
 
   constructor() {
-    this.initDB();
+    this.initDB().catch(err => console.error('IndexedDB initialization failed on boot:', err));
   }
 
   private initDB(): Promise<IDBDatabase> {
-    return new Promise((resolve, reject) => {
+    if (this.dbPromise) {
+      return this.dbPromise;
+    }
+
+    this.dbPromise = new Promise((resolve, reject) => {
       if (this.db) {
         resolve(this.db);
         return;
@@ -43,12 +48,14 @@ export class DbService {
         reject(err);
       }
     });
+
+    return this.dbPromise;
   }
 
   async getChat(chatId: string): Promise<any[]> {
     try {
       const db = await this.initDB();
-      return new Promise((resolve) => {
+      const messages = await new Promise<any[]>((resolve) => {
         const transaction = db.transaction([this.storeName], 'readonly');
         const store = transaction.objectStore(this.storeName);
         const request = store.get(chatId);
@@ -61,6 +68,34 @@ export class DbService {
           resolve([]);
         };
       });
+
+      if (messages && messages.length > 0) {
+        return messages;
+      }
+
+      // IndexedDB is empty for this chat; check for legacy localStorage data
+      try {
+        const legacyKey1 = 'ollama_chat_' + chatId;
+        const legacyKey2 = chatId;
+        const legacyData = localStorage.getItem(legacyKey1) || localStorage.getItem(legacyKey2);
+        
+        if (legacyData) {
+          const parsed = JSON.parse(legacyData);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            console.log(`[Migration] Auto-migrating legacy chat ${chatId} from localStorage to IndexedDB...`);
+            // Save to IndexedDB so it's persisted in the new architecture
+            await this.saveChat(chatId, parsed);
+            // Clear localStorage keys to reclaim quota space
+            localStorage.removeItem(legacyKey1);
+            localStorage.removeItem(legacyKey2);
+            return parsed;
+          }
+        }
+      } catch (err) {
+        console.error('[Migration] Failed to migrate legacy localStorage chat:', err);
+      }
+
+      return messages;
     } catch (e) {
       console.warn('Fallback: DB not available, loading empty array.', e);
       return [];
@@ -70,7 +105,7 @@ export class DbService {
   async saveChat(chatId: string, messages: any[]): Promise<void> {
     try {
       const db = await this.initDB();
-      return new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         const transaction = db.transaction([this.storeName], 'readwrite');
         const store = transaction.objectStore(this.storeName);
         const request = store.put(messages, chatId);
@@ -93,7 +128,7 @@ export class DbService {
   async deleteChat(chatId: string): Promise<void> {
     try {
       const db = await this.initDB();
-      return new Promise((resolve) => {
+      await new Promise<void>((resolve) => {
         const transaction = db.transaction([this.storeName], 'readwrite');
         const store = transaction.objectStore(this.storeName);
         const request = store.delete(chatId);
